@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trivia Quiz</title>
+</head>
+<body>
+    <h1>Welcome to the Trivia Quiz!</h1>
+    <button onclick="startQuiz()">Start Quiz</button>
+    <div id="quiz-container"></div>
+
+    <script>
+        function startQuiz() {
+            fetch('/quiz/fetch/')  // Calls the API endpoint we created
+            .then(response => response.json())
+            .then(data => {
+                let quizContainer = document.getElementById("quiz-container");
+                quizContainer.innerHTML = "";  // Clear previous content
+
+                data.results.forEach((question, index) => {
+                    let questionDiv = document.createElement("div");
+                    questionDiv.innerHTML = `<p><strong>Q${index + 1}: ${question.question}</strong></p>`;
+
+                    let answers = [...question.incorrect_answers, question.correct_answer];  
+                    answers.sort(() => Math.random() - 0.5);  // Shuffle answers
+
+                    answers.forEach(answer => {
+                        questionDiv.innerHTML += `
+                            <input type="radio" name="q${index}" value="${answer}"> ${answer} <br>
+                        `;
+                    });
+
+                    quizContainer.appendChild(questionDiv);
+                });
+
+                quizContainer.innerHTML += '<button onclick="submitQuiz()">Submit</button>';
+            });
+        }
+
+        function submitQuiz() {
+            alert("Quiz submitted! (We'll add scoring later)");
+        }
+    </script>
+</body>
+</html>
