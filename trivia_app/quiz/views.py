@@ -10,3 +10,5 @@ def fetch_questions(request):
     response = requests.get(url)
     data = response.json()
     return JsonResponse(data)
+def quiz_home(request):
+    return render(request, 'quiz/quiz_home.html')
