@@ -11,36 +11,114 @@
     <div id="quiz-container"></div>
 
     <script>
-        function startQuiz() {
-            fetch('/quiz/fetch/')  // Calls the API endpoint we created
-            .then(response => response.json())
-            .then(data => {
-                let quizContainer = document.getElementById("quiz-container");
-                quizContainer.innerHTML = "";  // Clear previous content
+    // JavaScript code to handle quiz functionality
+    let currentQuestionIndex = 0;
+    let questions = [];
+    let userAnswers = {};
+    let score = 0;
+    let correctStreak = 0;
+    let timer;
+    
+    function startQuiz() {
+        fetch('/quiz/fetch/')  
+        .then(response => response.json())
+        .then(data => {
+            questions = data.results;
+            currentQuestionIndex = 0;
+            userAnswers = {};
+            score = 0;
+            correctStreak = 0;
+            document.getElementById("quiz-container").innerHTML = "";  
+            showQuestion();
+        });
+    }
 
-                data.results.forEach((question, index) => {
-                    let questionDiv = document.createElement("div");
-                    questionDiv.innerHTML = `<p><strong>Q${index + 1}: ${question.question}</strong></p>`;
-
-                    let answers = [...question.incorrect_answers, question.correct_answer];  
-                    answers.sort(() => Math.random() - 0.5);  // Shuffle answers
-
-                    answers.forEach(answer => {
-                        questionDiv.innerHTML += `
-                            <input type="radio" name="q${index}" value="${answer}"> ${answer} <br>
-                        `;
-                    });
-
-                    quizContainer.appendChild(questionDiv);
-                });
-
-                quizContainer.innerHTML += '<button onclick="submitQuiz()">Submit</button>';
-            });
+    function showQuestion() {
+        if (currentQuestionIndex >= questions.length) {
+            showResults();
+            return;
         }
 
-        function submitQuiz() {
-            alert("Quiz submitted! (We'll add scoring later)");
+        let questionData = questions[currentQuestionIndex];
+        let quizContainer = document.getElementById("quiz-container");
+        quizContainer.innerHTML = `<h2>Q${currentQuestionIndex + 1}: ${questionData.question}</h2>`;
+
+        let answers = [...questionData.incorrect_answers, questionData.correct_answer];  
+        answers.sort(() => Math.random() - 0.5);  
+
+        answers.forEach(answer => {
+            quizContainer.innerHTML += `
+                <input type="radio" name="q${currentQuestionIndex}" value="${answer}"> ${answer} <br>
+            `;
+        });
+
+        quizContainer.innerHTML += '<button onclick="submitAnswer()">Next</button>';
+        
+        startTimer(questionData.category === "Mathematics" ? 90 : 60);
+    }
+
+    function startTimer(seconds) {
+        clearInterval(timer);
+        let timeLeft = seconds;
+        let timerDisplay = document.getElementById("timer");
+        
+        if (!timerDisplay) {
+            timerDisplay = document.createElement("p");
+            timerDisplay.id = "timer";
+            document.getElementById("quiz-container").prepend(timerDisplay);
         }
-    </script>
+
+        timer = setInterval(() => {
+            timerDisplay.innerText = `Time Left: ${timeLeft}s`;
+            timeLeft--;
+
+            if (timeLeft < 0) {
+                clearInterval(timer);
+                alert("Time's up! Moving to the next question.");
+                currentQuestionIndex++;
+                showQuestion();
+            }
+        }, 1000);
+    }
+
+    function submitAnswer() {
+        let selectedAnswer = document.querySelector(`input[name="q${currentQuestionIndex}"]:checked`);
+        
+        if (!selectedAnswer) {
+            alert("You must select an answer!");
+            return;
+        }
+
+        let correctAnswer = questions[currentQuestionIndex].correct_answer;
+        if (selectedAnswer.value === correctAnswer) {
+            score++;
+            correctStreak++;
+            alert(`Correct! 🎉 Score: ${score}`);
+        } else {
+            score--;
+            correctStreak = 0;
+            alert(`Wrong! 😢 The correct answer was: ${correctAnswer}. Score: ${score}`);
+        }
+
+        currentQuestionIndex++;
+        showQuestion();
+    }
+
+    function showResults() {
+        clearInterval(timer);
+        let quizContainer = document.getElementById("quiz-container");
+        quizContainer.innerHTML = `<h2>Your final score: ${score}</h2>`;
+
+        let remark = "";
+        if (score === 10) remark = "🎉 Congratulations and celebrations! 🎉";
+        else if (score >= 7) remark = "⭐ You almost reached perfection!";
+        else if (score >= 4) remark = "👍 Nice effort!";
+        else remark = "😢 Better luck next time!";
+
+        quizContainer.innerHTML += `<p>${remark}</p>`;
+        quizContainer.innerHTML += '<button onclick="startQuiz()">Try Again</button>';
+    }
+</script>
+
 </body>
 </html>
